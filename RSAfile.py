@@ -2,14 +2,28 @@ from random import randint
 import time
 import threading
 
+
 N = 10  # number of characters in one packet
 
 
-class Medium:
+class Status:
     status: bool
 
     def __init__(self, stat):
         self.status = stat
+
+
+class Medium:
+    status: int
+
+    def __init__(self, stat):
+        self.status = stat
+
+    def __str__(self):
+        return str(self.status)
+
+    def stat(self):
+        return self.status
 
 
 class Extension:

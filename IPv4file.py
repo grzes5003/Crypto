@@ -1,10 +1,13 @@
 # TODO potential mistake
 # from RSAfile import QuasiMD, Extension
 from layer1 import *
+import threading
 
 
-class IPv4:
-    """ class handling preparation of data and passing it to media """
+class IPv4(threading.Thread):
+    """ class handling preparation of data and passing it to layer1
+        class handles also receiving data from layer1
+    """
     SIZE = 128  # number of bits in payload
     PROTOCOL = '0100'
 
@@ -132,18 +135,34 @@ class IPv4:
         num_of_frames = p_data[40:48]
         checksum = p_data[48:65]
         data = p_data[65:192]
+        HEADER = p_data[0:65]
 
         # TODO optimise
-        decoded = [protocol, tos, src_addr, dest_addr, flag, ttl, frame_num, num_of_frames, checksum, data]
+        decoded = {"protocol": protocol,
+                   "tos": tos,
+                   "src_addr": src_addr,
+                   "dest_addr": dest_addr,
+                   "flag": flag,
+                   "ttl": ttl,
+                   "frame_num": frame_num,
+                   "num_of_frames": num_of_frames,
+                   "checksum": checksum,
+                   "data": data,
+                   "HEADER": HEADER
+                   }
         return decoded
 
     @staticmethod
     def genHADDR():
         return 0b11111111
 
-    def __init__(self, HADDR: int=0b11111111):
+    def __init__(self, listen_status, HADDR: int=0b11111111):
         self.ADDRESS = HADDR
         self.QUE = []
+        self.listen_status = listen_status
+        self.listener_handler: Listener = None
+        self.layer_handler = None
+        threading.Thread.__init__(self)
 
     @staticmethod
     def INTTOBIN(i: int) -> bin:
@@ -151,6 +170,16 @@ class IPv4:
 
     def send_data(self, s_data: str, layer_handler, b_address: str = None, i_address: int = None):
         """ user socket function to send data to another host"""
+
+        # user must be connected
+        if self.listener_handler is None:
+            # not connected
+            return 1
+
+        # TODO listen_status not needed
+        self.listen_status = False
+        self.listener_handler.change_listen_status(self.listen_status)
+
         if b_address is None:
             try:
                 b_address = IPv4.INTTOBIN(i_address)
@@ -165,3 +194,65 @@ class IPv4:
         for P in QUE_DATA:
             if layer_handler.send_data(P) != 0:
                 print('Error occurred')
+
+    def connect_to_medium(self, medium: Medium):
+        self.layer_handler = Layer1(medium)
+        self.listener_handler = Listener(self.layer_handler)
+        self.listener_handler.start()
+
+    # threading methods
+    def get_data_from_listen(self):
+        pass
+
+    def run(self):
+        while True:
+            if self.listen_status:
+                self.get_data_from_listen()
+                time.sleep(0.5)
+
+
+class Listener(threading.Thread):
+    BUFFOR_LIMIT = 1024
+    layer_handler: Layer1
+    ascii_data: str
+
+    def __init__(self, layer_handler):
+        self.listen_status = True
+        self.buffor = ''
+        self.layer_handler = layer_handler
+        threading.Thread.__init__(self)
+
+    def change_listen_status(self, status):
+        self.listen_status = status
+
+    def run(self):
+            while True:
+                # if IPv4 wants to receive data, listen and add it to buffor
+                if self.listen_status:
+                    self.buffor += self.layer_handler.receive_data()
+                    if IPv4.PROTOCOL in self.buffor:
+                        # if PROTOCOL (0100) substring in buffor
+                        s_tmp = self.buffor[self.buffor.find(IPv4.PROTOCOL):]
+                        # if its whole packet length
+                        if len(s_tmp) >= 192:
+                            self.decode(s_tmp)
+
+                    # analise buffor
+
+    def decode(self, p_data):
+        # TODO add error handling
+        if len(p_data) != 192:
+            # bad frame length
+            return 1
+
+        frame = IPv4.DECODEPACKET(p_data)
+
+        if frame["checksum"] != QuasiMD.generate_from_str(frame["HEADER"]):
+            # TODO throw frame away
+            return 1
+        self.ascii_data += Extension.BINTOASCII(frame["data"])
+
+    def return_ascii_data(self):
+        data_tmp = self.ascii_data
+        self.ascii_data = ''
+        return data_tmp

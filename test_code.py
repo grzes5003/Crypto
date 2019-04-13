@@ -1,6 +1,7 @@
 import unittest
-from RSAfile import RSA, QuasiMD, Extension
+from RSAfile import RSA, QuasiMD, Extension, Medium
 from IPv4file import IPv4
+from HOST import Host
 # from layer1 import Layer1
 
 class TestRSA(unittest.TestCase):
@@ -105,4 +106,7 @@ class TestIPv4(unittest.TestCase):
 class TestLayer1(unittest.TestCase):
 
     def test_send_data(self):
-        pass
+        medium1 = Medium(False)
+        host1 = Host()
+        host1.connect_to_medium(medium1)
+        host1.send_data()
