@@ -1,7 +1,15 @@
 from random import randint
-
+import time
+import threading
 
 N = 10  # number of characters in one packet
+
+
+class Medium:
+    status: bool
+
+    def __init__(self, stat):
+        self.status = stat
 
 
 class Extension:

@@ -1,4 +1,7 @@
-from RSA import QuasiMD, Extension
+# TODO potential mistake
+# from RSAfile import QuasiMD, Extension
+from layer1 import *
+
 
 class IPv4:
     """ class handling preparation of data and passing it to media """
@@ -146,11 +149,19 @@ class IPv4:
     def INTTOBIN(i: int) -> bin:
         return bin(i)
 
-    def send_data(self, s_data: str, b_address: bin = None, i_address: int = None):
+    def send_data(self, s_data: str, layer_handler, b_address: str = None, i_address: int = None):
         """ user socket function to send data to another host"""
         if b_address is None:
             try:
                 b_address = IPv4.INTTOBIN(i_address)
             except TypeError as err:
                 print("Bad type of i_address: " + str(err.args))
-        QUE_DATA = IPv4.ENCAPSULATE(s_data, int, int, int, int)
+        # TODO remove default values
+        src, dest, flags, tos = 1, 2, 0, 1
+
+        QUE_DATA = IPv4.ENCAPSULATE(s_data, src, dest, flags, tos)
+
+        # TODO real error handler
+        for P in QUE_DATA:
+            if layer_handler.send_data(P) != 0:
+                print('Error occurred')

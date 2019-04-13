@@ -1,4 +1,11 @@
+from RSAfile import *
+
+from RSAfile import *
+
+medium1 = Medium(False)
 
 
 class Nework:
-    pass
+
+    def __init__(self):
+        pass
